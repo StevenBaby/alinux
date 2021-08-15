@@ -1,0 +1,13 @@
+backup
+
+*.o
+*.a
+linux-0.11/tools/build
+linux-0.11/tools/system
+linux-0.11/kernel/chr_drv/keyboard.s
+linux-0.11/boot/setup
+linux-0.11/boot/bootsect
+linux-0.11/System.map
+linux-0.11/Image
+
+devel/bx_enh_dbg.ini
