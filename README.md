@@ -1,5 +1,7 @@
 # alinux
-Linux Analysis
+Linux 源码分析
+
+[本项目地址](https://github.com/StevenBaby/alinux)
 
 ## 参考资料
 
