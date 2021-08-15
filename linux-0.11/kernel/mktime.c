@@ -42,8 +42,10 @@ long kernel_mktime(struct tm * tm)
 {
 	long res;
 	int year;
-
-	year = tm->tm_year - 70;
+	if (tm->tm_year >= 70)
+	  year = tm->tm_year - 70;
+	else
+	  year = tm->tm_year + 100 -70; /* Y2K bug fix by hellotigercn 20110803 */
 /* magic offsets (y+1) needed to get leapyears right.*/
 	res = YEAR*year + DAY*((year+1)/4);
 	res += month[tm->tm_mon];

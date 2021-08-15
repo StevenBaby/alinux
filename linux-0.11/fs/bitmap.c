@@ -11,26 +11,26 @@
 #include <linux/kernel.h>
 
 #define clear_block(addr) \
-__asm__("cld\n\t" \
+__asm__ __volatile__ ("cld\n\t" \
 	"rep\n\t" \
 	"stosl" \
-	::"a" (0),"c" (BLOCK_SIZE/4),"D" ((long) (addr)):"cx","di")
+	::"a" (0),"c" (BLOCK_SIZE/4),"D" ((long) (addr)))
 
 #define set_bit(nr,addr) ({\
-register int res __asm__("ax"); \
+register int res ; \
 __asm__ __volatile__("btsl %2,%3\n\tsetb %%al": \
 "=a" (res):"0" (0),"r" (nr),"m" (*(addr))); \
 res;})
 
 #define clear_bit(nr,addr) ({\
-register int res __asm__("ax"); \
+register int res ; \
 __asm__ __volatile__("btrl %2,%3\n\tsetnb %%al": \
 "=a" (res):"0" (0),"r" (nr),"m" (*(addr))); \
 res;})
 
 #define find_first_zero(addr) ({ \
 int __res; \
-__asm__("cld\n" \
+__asm__ __volatile__ ("cld\n" \
 	"1:\tlodsl\n\t" \
 	"notl %%eax\n\t" \
 	"bsfl %%eax,%%edx\n\t" \
@@ -41,7 +41,7 @@ __asm__("cld\n" \
 	"cmpl $8192,%%ecx\n\t" \
 	"jl 1b\n" \
 	"3:" \
-	:"=c" (__res):"c" (0),"S" (addr):"ax","dx","si"); \
+	:"=c" (__res):"c" (0),"S" (addr)); \
 __res;})
 
 void free_block(int dev, int block)
@@ -82,7 +82,7 @@ int new_block(int dev)
 		panic("trying to get new block from nonexistant device");
 	j = 8192;
 	for (i=0 ; i<8 ; i++)
-		if (bh=sb->s_zmap[i])
+		if ((bh=sb->s_zmap[i]))
 			if ((j=find_first_zero(bh->b_data))<8192)
 				break;
 	if (i>=8 || !bh || j>=8192)
@@ -146,7 +146,7 @@ struct m_inode * new_inode(int dev)
 		panic("new_inode with unknown device");
 	j = 8192;
 	for (i=0 ; i<8 ; i++)
-		if (bh=sb->s_imap[i])
+		if ((bh=sb->s_imap[i]))
 			if ((j=find_first_zero(bh->b_data))<8192)
 				break;
 	if (!bh || j >= 8192 || j+i*8192 > sb->s_ninodes) {

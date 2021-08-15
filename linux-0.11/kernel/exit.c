@@ -64,18 +64,18 @@ int sys_kill(int pid,int sig)
 
 	if (!pid) while (--p > &FIRST_TASK) {
 		if (*p && (*p)->pgrp == current->pid) 
-			if (err=send_sig(sig,*p,1))
+			if ((err=send_sig(sig,*p,1)))
 				retval = err;
 	} else if (pid>0) while (--p > &FIRST_TASK) {
 		if (*p && (*p)->pid == pid) 
-			if (err=send_sig(sig,*p,0))
+			if ((err=send_sig(sig,*p,0)))
 				retval = err;
-	} else if (pid == -1) while (--p > &FIRST_TASK)
-		if (err = send_sig(sig,*p,0))
+	} else if (pid == -1) while (--p > &FIRST_TASK) {
+		if ((err = send_sig(sig,*p,0)))
 			retval = err;
-	else while (--p > &FIRST_TASK)
+	} else while (--p > &FIRST_TASK)
 		if (*p && (*p)->pgrp == -pid)
-			if (err = send_sig(sig,*p,0))
+			if ((err = send_sig(sig,*p,0)))
 				retval = err;
 	return retval;
 }
@@ -102,7 +102,6 @@ static void tell_father(int pid)
 int do_exit(long code)
 {
 	int i;
-
 	free_page_tables(get_base(current->ldt[1]),get_limit(0x0f));
 	free_page_tables(get_base(current->ldt[2]),get_limit(0x17));
 	for (i=0 ; i<NR_TASKS ; i++)

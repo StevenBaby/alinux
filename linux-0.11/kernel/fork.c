@@ -54,6 +54,7 @@ int copy_mem(int nr,struct task_struct * p)
 	set_base(p->ldt[1],new_code_base);
 	set_base(p->ldt[2],new_data_base);
 	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {
+		printk("free_page_tables: from copy_mem\n");
 		free_page_tables(new_data_base,data_limit);
 		return -ENOMEM;
 	}
@@ -118,7 +119,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 		return -EAGAIN;
 	}
 	for (i=0; i<NR_OPEN;i++)
-		if (f=p->filp[i])
+		if ((f=p->filp[i]))
 			f->f_count++;
 	if (current->pwd)
 		current->pwd->i_count++;

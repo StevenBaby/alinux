@@ -28,9 +28,9 @@
 #include <linux/head.h>
 #include <linux/kernel.h>
 
-volatile void do_exit(long code);
+void do_exit(long code);
 
-static inline volatile void oom(void)
+static inline void oom(void)
 {
 	printk("out of memory\n\r");
 	do_exit(SIGSEGV);
@@ -52,7 +52,7 @@ current->start_code + current->end_code)
 static long HIGH_MEMORY = 0;
 
 #define copy_page(from,to) \
-__asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024):"cx","di","si")
+__asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024))
 
 static unsigned char mem_map [ PAGING_PAGES ] = {0,};
 
@@ -73,12 +73,12 @@ __asm__("std ; repne ; scasb\n\t"
 	"movl $1024,%%ecx\n\t"
 	"leal 4092(%%edx),%%edi\n\t"
 	"rep ; stosl\n\t"
-	"movl %%edx,%%eax\n"
-	"1:"
+	" movl %%edx,%%eax\n"
+	"1: cld"
 	:"=a" (__res)
 	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
 	"D" (mem_map+PAGING_PAGES-1)
-	:"di","cx","dx");
+	);
 return __res;
 }
 
@@ -314,11 +314,12 @@ static int try_to_share(unsigned long address, struct task_struct * p)
 	if (phys_addr >= HIGH_MEMORY || phys_addr < LOW_MEM)
 		return 0;
 	to = *(unsigned long *) to_page;
-	if (!(to & 1))
-		if (to = get_free_page())
+	if (!(to & 1)) {
+		if ((to = get_free_page()))
 			*(unsigned long *) to_page = to | 7;
 		else
 			oom();
+	}
 	to &= 0xfffff000;
 	to_page = to + ((address>>10) & 0xffc);
 	if (1 & *(unsigned long *) to_page)

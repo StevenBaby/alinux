@@ -10,7 +10,7 @@
  * to mainly kill the offending process (probably by giving it a signal,
  * but possibly by killing it outright if necessary).
  */
-#include <string.h>
+#include <string.h> 
 
 #include <linux/head.h>
 #include <linux/sched.h>

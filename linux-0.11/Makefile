@@ -2,25 +2,23 @@
 # if you want the ram-disk device, define this to be the
 # size in blocks.
 #
-RAMDISK = #-DRAMDISK=512
+RAMDISK =  #-DRAMDISK=512
 
 AS86	=as86 -0 -a
 LD86	=ld86 -0
 
-AS	=gas
-LD	=gld
-LDFLAGS	=-s -x -M
-CC	=gcc $(RAMDISK)
-CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer \
--fcombine-regs -mstring-insns
-CPP	=cpp -nostdinc -Iinclude
+include Option.mk
+
+LDFLAGS	+= -Ttext 0 -e startup_32
+CFLAGS	+= $(RAMDISK) -Iinclude
+CPP	+= -Iinclude
 
 #
 # ROOT_DEV specifies the default root-device when making the image.
 # This can be either FLOPPY, /dev/xxxx or empty, in which case the
 # default of /dev/hd6 is used by 'build'.
 #
-ROOT_DEV=/dev/hd6
+ROOT_DEV= #FLOPPY 
 
 ARCHIVES=kernel/kernel.o mm/mm.o fs/fs.o
 DRIVERS =kernel/blk_drv/blk_drv.a kernel/chr_drv/chr_drv.a
@@ -28,28 +26,29 @@ MATH	=kernel/math/math.a
 LIBS	=lib/lib.a
 
 .c.s:
-	$(CC) $(CFLAGS) \
-	-nostdinc -Iinclude -S -o $*.s $<
+	$(CC) $(CFLAGS) -S -o $*.s $<
 .s.o:
-	$(AS) -c -o $*.o $<
+	$(AS)  -o $*.o $<
 .c.o:
-	$(CC) $(CFLAGS) \
-	-nostdinc -Iinclude -c -o $*.o $<
+	$(CC) $(CFLAGS) -c -o $*.o $<
 
 all:	Image
 
 Image: boot/bootsect boot/setup tools/system tools/build
-	tools/build boot/bootsect boot/setup tools/system $(ROOT_DEV) > Image
+	objcopy -O binary -R .note -R .comment -R .note.gnu.property tools/system tools/kernel
+	tools/build boot/bootsect boot/setup tools/kernel $(ROOT_DEV) > Image
+	rm tools/kernel -f
 	sync
 
 disk: Image
-	dd bs=8192 if=Image of=/dev/PS0
+	dd bs=8192 if=Image of=/dev/fd0
 
 tools/build: tools/build.c
-	$(CC) $(CFLAGS) \
-	-o tools/build tools/build.c
+	gcc -m32 -o tools/build tools/build.c
 
 boot/head.o: boot/head.s
+	gcc -m32 -I./include -traditional -c boot/head.s
+	mv head.o boot/
 
 tools/system:	boot/head.o init/main.o \
 		$(ARCHIVES) $(DRIVERS) $(MATH) $(LIBS)
@@ -58,7 +57,8 @@ tools/system:	boot/head.o init/main.o \
 	$(DRIVERS) \
 	$(MATH) \
 	$(LIBS) \
-	-o tools/system > System.map
+	-o tools/system 
+	nm tools/system | grep -v '\(compiled\)\|\(\.o$$\)\|\( [aU] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)'| sort > System.map 
 
 kernel/math/math.a:
 	(cd kernel/math; make)
@@ -103,7 +103,7 @@ clean:
 	(cd lib;make clean)
 
 backup: clean
-	(cd .. ; tar cf - linux | compress - > backup.Z)
+	(cd .. ; tar cf - linux | compress16 - > backup.Z)
 	sync
 
 dep:

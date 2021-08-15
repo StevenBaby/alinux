@@ -1,4 +1,4 @@
-extern inline unsigned char get_fs_byte(const char * addr)
+static inline unsigned char get_fs_byte(const char * addr)
 {
 	unsigned register char _v;
 
@@ -6,7 +6,7 @@ extern inline unsigned char get_fs_byte(const char * addr)
 	return _v;
 }
 
-extern inline unsigned short get_fs_word(const unsigned short *addr)
+static inline unsigned short get_fs_word(const unsigned short *addr)
 {
 	unsigned short _v;
 
@@ -14,7 +14,7 @@ extern inline unsigned short get_fs_word(const unsigned short *addr)
 	return _v;
 }
 
-extern inline unsigned long get_fs_long(const unsigned long *addr)
+static inline unsigned long get_fs_long(const unsigned long *addr)
 {
 	unsigned long _v;
 
@@ -22,17 +22,17 @@ extern inline unsigned long get_fs_long(const unsigned long *addr)
 	return _v;
 }
 
-extern inline void put_fs_byte(char val,char *addr)
+static inline void put_fs_byte(char val,char *addr)
 {
 __asm__ ("movb %0,%%fs:%1"::"r" (val),"m" (*addr));
 }
 
-extern inline void put_fs_word(short val,short * addr)
+static inline void put_fs_word(short val,short * addr)
 {
 __asm__ ("movw %0,%%fs:%1"::"r" (val),"m" (*addr));
 }
 
-extern inline void put_fs_long(unsigned long val,unsigned long * addr)
+static inline void put_fs_long(unsigned long val,unsigned long * addr)
 {
 __asm__ ("movl %0,%%fs:%1"::"r" (val),"m" (*addr));
 }
@@ -44,21 +44,21 @@ __asm__ ("movl %0,%%fs:%1"::"r" (val),"m" (*addr));
  * [ nothing wrong here, Linus ]
  */
 
-extern inline unsigned long get_fs() 
+static inline unsigned long get_fs() 
 {
 	unsigned short _v;
 	__asm__("mov %%fs,%%ax":"=a" (_v):);
 	return _v;
 }
 
-extern inline unsigned long get_ds() 
+static inline unsigned long get_ds() 
 {
 	unsigned short _v;
 	__asm__("mov %%ds,%%ax":"=a" (_v):);
 	return _v;
 }
 
-extern inline void set_fs(unsigned long val)
+static inline void set_fs(unsigned long val)
 {
 	__asm__("mov %0,%%fs"::"a" ((unsigned short) val));
 }

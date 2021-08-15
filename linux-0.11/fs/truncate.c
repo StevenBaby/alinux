@@ -16,7 +16,7 @@ static void free_ind(int dev,int block)
 
 	if (!block)
 		return;
-	if (bh=bread(dev,block)) {
+	if ((bh=bread(dev,block))) {
 		p = (unsigned short *) bh->b_data;
 		for (i=0;i<512;i++,p++)
 			if (*p)
@@ -34,7 +34,7 @@ static void free_dind(int dev,int block)
 
 	if (!block)
 		return;
-	if (bh=bread(dev,block)) {
+	if ((bh=bread(dev,block))) {
 		p = (unsigned short *) bh->b_data;
 		for (i=0;i<512;i++,p++)
 			if (*p)

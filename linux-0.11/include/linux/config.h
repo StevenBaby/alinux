@@ -13,10 +13,10 @@
  * KBD_GR for German keyboards
  * KBD_FR for Frech keyboard
  */
-/*#define KBD_US */
+#define KBD_US
 /*#define KBD_GR */
 /*#define KBD_FR */
-#define KBD_FINNISH
+/*#define KBD_FINNISH */
 
 /*
  * Normally, Linux can get the drive parameters from the BIOS at

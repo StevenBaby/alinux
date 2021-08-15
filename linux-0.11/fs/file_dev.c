@@ -22,7 +22,7 @@ int file_read(struct m_inode * inode, struct file * filp, char * buf, int count)
 	if ((left=count)<=0)
 		return 0;
 	while (left) {
-		if (nr = bmap(inode,(filp->f_pos)/BLOCK_SIZE)) {
+		if ((nr = bmap(inode,(filp->f_pos)/BLOCK_SIZE))) {
 			if (!(bh=bread(inode->i_dev,nr)))
 				break;
 		} else

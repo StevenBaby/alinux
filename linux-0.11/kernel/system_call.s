@@ -64,9 +64,9 @@ nr_system_calls = 72
  * Ok, I get parallel printer interrupts while using the floppy for some
  * strange reason. Urgel. Now I just ignore them.
  */
-.globl _system_call,_sys_fork,_timer_interrupt,_sys_execve
-.globl _hd_interrupt,_floppy_interrupt,_parallel_interrupt
-.globl _device_not_available, _coprocessor_error
+.globl system_call,sys_fork,timer_interrupt,sys_execve
+.globl hd_interrupt,floppy_interrupt,parallel_interrupt
+.globl device_not_available, coprocessor_error
 
 .align 2
 bad_sys_call:
@@ -75,9 +75,9 @@ bad_sys_call:
 .align 2
 reschedule:
 	pushl $ret_from_sys_call
-	jmp _schedule
+	jmp schedule
 .align 2
-_system_call:
+system_call:
 	cmpl $nr_system_calls-1,%eax
 	ja bad_sys_call
 	push %ds
@@ -91,16 +91,16 @@ _system_call:
 	mov %dx,%es
 	movl $0x17,%edx		# fs points to local data space
 	mov %dx,%fs
-	call _sys_call_table(,%eax,4)
+	call *sys_call_table(,%eax,4)
 	pushl %eax
-	movl _current,%eax
+	movl current,%eax
 	cmpl $0,state(%eax)		# state
 	jne reschedule
 	cmpl $0,counter(%eax)		# counter
 	je reschedule
 ret_from_sys_call:
-	movl _current,%eax		# task[0] cannot have signals
-	cmpl _task,%eax
+	movl current,%eax		# task[0] cannot have signals
+	cmpl task,%eax
 	je 3f
 	cmpw $0x0f,CS(%esp)		# was old code segment supervisor ?
 	jne 3f
@@ -116,7 +116,7 @@ ret_from_sys_call:
 	movl %ebx,signal(%eax)
 	incl %ecx
 	pushl %ecx
-	call _do_signal
+	call do_signal
 	popl %eax
 3:	popl %eax
 	popl %ebx
@@ -128,7 +128,7 @@ ret_from_sys_call:
 	iret
 
 .align 2
-_coprocessor_error:
+coprocessor_error:
 	push %ds
 	push %es
 	push %fs
@@ -142,10 +142,10 @@ _coprocessor_error:
 	movl $0x17,%eax
 	mov %ax,%fs
 	pushl $ret_from_sys_call
-	jmp _math_error
+	jmp math_error
 
 .align 2
-_device_not_available:
+device_not_available:
 	push %ds
 	push %es
 	push %fs
@@ -162,18 +162,18 @@ _device_not_available:
 	clts				# clear TS so that we can use math
 	movl %cr0,%eax
 	testl $0x4,%eax			# EM (math emulation bit)
-	je _math_state_restore
+	je math_state_restore
 	pushl %ebp
 	pushl %esi
 	pushl %edi
-	call _math_emulate
+	call math_emulate
 	popl %edi
 	popl %esi
 	popl %ebp
 	ret
 
 .align 2
-_timer_interrupt:
+timer_interrupt:
 	push %ds		# save ds,es and put kernel data space
 	push %es		# into them. %fs is used by _system_call
 	push %fs
@@ -186,27 +186,27 @@ _timer_interrupt:
 	mov %ax,%es
 	movl $0x17,%eax
 	mov %ax,%fs
-	incl _jiffies
+	incl jiffies
 	movb $0x20,%al		# EOI to interrupt controller #1
 	outb %al,$0x20
 	movl CS(%esp),%eax
 	andl $3,%eax		# %eax is CPL (0 or 3, 0=supervisor)
 	pushl %eax
-	call _do_timer		# 'do_timer(long CPL)' does everything from
+	call do_timer		# 'do_timer(long CPL)' does everything from
 	addl $4,%esp		# task switching to accounting ...
 	jmp ret_from_sys_call
 
 .align 2
-_sys_execve:
+sys_execve:
 	lea EIP(%esp),%eax
 	pushl %eax
-	call _do_execve
+	call do_execve
 	addl $4,%esp
 	ret
 
 .align 2
-_sys_fork:
-	call _find_empty_process
+sys_fork:
+	call find_empty_process
 	testl %eax,%eax
 	js 1f
 	push %gs
@@ -214,11 +214,11 @@ _sys_fork:
 	pushl %edi
 	pushl %ebp
 	pushl %eax
-	call _copy_process
+	call copy_process
 	addl $20,%esp
 1:	ret
 
-_hd_interrupt:
+hd_interrupt:
 	pushl %eax
 	pushl %ecx
 	pushl %edx
@@ -235,10 +235,10 @@ _hd_interrupt:
 	jmp 1f			# give port chance to breathe
 1:	jmp 1f
 1:	xorl %edx,%edx
-	xchgl _do_hd,%edx
+	xchgl do_hd,%edx
 	testl %edx,%edx
 	jne 1f
-	movl $_unexpected_hd_interrupt,%edx
+	movl $unexpected_hd_interrupt,%edx
 1:	outb %al,$0x20
 	call *%edx		# "interesting" way of handling intr.
 	pop %fs
@@ -249,7 +249,7 @@ _hd_interrupt:
 	popl %eax
 	iret
 
-_floppy_interrupt:
+floppy_interrupt:
 	pushl %eax
 	pushl %ecx
 	pushl %edx
@@ -264,10 +264,10 @@ _floppy_interrupt:
 	movb $0x20,%al
 	outb %al,$0x20		# EOI to interrupt controller #1
 	xorl %eax,%eax
-	xchgl _do_floppy,%eax
+	xchgl do_floppy,%eax
 	testl %eax,%eax
 	jne 1f
-	movl $_unexpected_floppy_interrupt,%eax
+	movl $unexpected_floppy_interrupt,%eax
 1:	call *%eax		# "interesting" way of handling intr.
 	pop %fs
 	pop %es
@@ -277,7 +277,7 @@ _floppy_interrupt:
 	popl %eax
 	iret
 
-_parallel_interrupt:
+parallel_interrupt:
 	pushl %eax
 	movb $0x20,%al
 	outb %al,$0x20

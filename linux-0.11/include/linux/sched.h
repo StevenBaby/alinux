@@ -32,7 +32,9 @@ extern int free_page_tables(unsigned long from, unsigned long size);
 extern void sched_init(void);
 extern void schedule(void);
 extern void trap_init(void);
-extern void panic(const char * str);
+#ifndef PANIC
+volatile void panic(const char * str);
+#endif
 extern int tty_write(unsigned minor,char * buf,int count);
 
 typedef int (*fn_ptr)();
@@ -170,12 +172,12 @@ __asm__("str %%ax\n\t" \
  */
 #define switch_to(n) {\
 struct {long a,b;} __tmp; \
-__asm__("cmpl %%ecx,_current\n\t" \
+__asm__("cmpl %%ecx,current\n\t" \
 	"je 1f\n\t" \
 	"movw %%dx,%1\n\t" \
-	"xchgl %%ecx,_current\n\t" \
-	"ljmp %0\n\t" \
-	"cmpl %%ecx,_last_task_used_math\n\t" \
+	"xchgl %%ecx,current\n\t" \
+	"ljmp *%0\n\t" \
+	"cmpl %%ecx,last_task_used_math\n\t" \
 	"jne 1f\n\t" \
 	"clts\n" \
 	"1:" \
@@ -185,32 +187,37 @@ __asm__("cmpl %%ecx,_current\n\t" \
 
 #define PAGE_ALIGN(n) (((n)+0xfff)&0xfffff000)
 
-#define _set_base(addr,base) \
-__asm__("movw %%dx,%0\n\t" \
+#define _set_base(addr,base)  \
+__asm__ ("push %%edx\n\t" \
+	"movw %%dx,%0\n\t" \
 	"rorl $16,%%edx\n\t" \
 	"movb %%dl,%1\n\t" \
-	"movb %%dh,%2" \
+	"movb %%dh,%2\n\t" \
+	"pop %%edx" \
 	::"m" (*((addr)+2)), \
-	  "m" (*((addr)+4)), \
-	  "m" (*((addr)+7)), \
-	  "d" (base) \
-	:"dx")
+	 "m" (*((addr)+4)), \
+	 "m" (*((addr)+7)), \
+	 "d" (base) \
+	)
 
 #define _set_limit(addr,limit) \
-__asm__("movw %%dx,%0\n\t" \
+__asm__ ("push %%edx\n\t" \
+	"movw %%dx,%0\n\t" \
 	"rorl $16,%%edx\n\t" \
 	"movb %1,%%dh\n\t" \
 	"andb $0xf0,%%dh\n\t" \
 	"orb %%dh,%%dl\n\t" \
-	"movb %%dl,%1" \
+	"movb %%dl,%1\n\t" \
+	"pop %%edx" \
 	::"m" (*(addr)), \
-	  "m" (*((addr)+6)), \
-	  "d" (limit) \
-	:"dx")
+	 "m" (*((addr)+6)), \
+	 "d" (limit) \
+	)
 
-#define set_base(ldt,base) _set_base( ((char *)&(ldt)) , base )
+#define set_base(ldt,base) _set_base( ((char *)&(ldt)) , (base) )
 #define set_limit(ldt,limit) _set_limit( ((char *)&(ldt)) , (limit-1)>>12 )
 
+/**
 #define _get_base(addr) ({\
 unsigned long __base; \
 __asm__("movb %3,%%dh\n\t" \
@@ -220,8 +227,24 @@ __asm__("movb %3,%%dh\n\t" \
 	:"=d" (__base) \
 	:"m" (*((addr)+2)), \
 	 "m" (*((addr)+4)), \
-	 "m" (*((addr)+7))); \
+	 "m" (*((addr)+7)) \
+        :"memory"); \
 __base;})
+**/
+
+static inline unsigned long _get_base(char * addr)
+{
+         unsigned long __base;
+         __asm__("movb %3,%%dh\n\t"
+                 "movb %2,%%dl\n\t"
+                 "shll $16,%%edx\n\t"
+                 "movw %1,%%dx"
+                 :"=&d" (__base)
+                 :"m" (*((addr)+2)),
+                  "m" (*((addr)+4)),
+                  "m" (*((addr)+7)));
+         return __base;
+}
 
 #define get_base(ldt) _get_base( ((char *)&(ldt)) )
 

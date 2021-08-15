@@ -1,10 +1,9 @@
-CC	=gcc
-CFLAGS	=-O -Wall -fstrength-reduce -fcombine-regs -fomit-frame-pointer \
-	-finline-functions -nostdinc -I../include
-AS	=gas
-AR	=gar
-LD	=gld
-CPP	=gcc -E -nostdinc -I../include
+
+include ../Option.mk
+
+LDFLAGS += -r
+CFLAGS	+= -I../include
+CPP	+= -I../include
 
 .c.o:
 	$(CC) $(CFLAGS) \
@@ -20,7 +19,7 @@ OBJS	= memory.o page.o
 all: mm.o
 
 mm.o: $(OBJS)
-	$(LD) -r -o mm.o $(OBJS)
+	$(LD) $(LDFLAGS) -o mm.o $(OBJS)
 
 clean:
 	rm -f core *.o *.a tmp_make
@@ -32,6 +31,7 @@ dep:
 	cp tmp_make Makefile
 
 ### Dependencies:
-memory.o : memory.c ../include/signal.h ../include/sys/types.h \
-  ../include/asm/system.h ../include/linux/sched.h ../include/linux/head.h \
-  ../include/linux/fs.h ../include/linux/mm.h ../include/linux/kernel.h 
+memory.o: memory.c ../include/signal.h ../include/sys/types.h \
+  ../include/asm/system.h ../include/linux/sched.h \
+  ../include/linux/head.h ../include/linux/fs.h ../include/linux/mm.h \
+  ../include/linux/kernel.h

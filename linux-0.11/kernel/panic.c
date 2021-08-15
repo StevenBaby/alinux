@@ -8,6 +8,8 @@
  * This function is used through-out the kernel (includeinh mm and fs)
  * to indicate a major problem.
  */
+#define PANIC
+
 #include <linux/kernel.h>
 #include <linux/sched.h>
 

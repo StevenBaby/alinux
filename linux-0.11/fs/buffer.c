@@ -27,6 +27,9 @@
 #include <asm/io.h>
 
 extern int end;
+extern void put_super(int);
+extern void invalidate_inodes(int);
+
 struct buffer_head * start_buffer = (struct buffer_head *) &end;
 struct buffer_head * hash_table[NR_HASH];
 static struct buffer_head * free_list;
@@ -81,7 +84,7 @@ int sync_dev(int dev)
 	return 0;
 }
 
-void inline invalidate_buffers(int dev)
+static void inline invalidate_buffers(int dev)
 {
 	int i;
 	struct buffer_head * bh;
@@ -208,7 +211,7 @@ struct buffer_head * getblk(int dev,int block)
 	struct buffer_head * tmp, * bh;
 
 repeat:
-	if (bh = get_hash_table(dev,block))
+	if ((bh = get_hash_table(dev,block)))
 		return bh;
 	tmp = free_list;
 	do {
@@ -285,7 +288,7 @@ __asm__("cld\n\t" \
 	"rep\n\t" \
 	"movsl\n\t" \
 	::"c" (BLOCK_SIZE/4),"S" (from),"D" (to) \
-	:"cx","di","si")
+	)
 
 /*
  * bread_page reads four buffers into memory at the desired address. It's
@@ -300,7 +303,7 @@ void bread_page(unsigned long address,int dev,int b[4])
 
 	for (i=0 ; i<4 ; i++)
 		if (b[i]) {
-			if (bh[i] = getblk(dev,b[i]))
+			if ((bh[i] = getblk(dev,b[i])))
 				if (!bh[i]->b_uptodate)
 					ll_rw_block(READ,bh[i]);
 		} else
