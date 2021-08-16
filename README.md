@@ -27,30 +27,18 @@ Linux 源码分析
 
 具体实现的细节，请看 [配置开发环境](./docs/01%20配置开发环境.md)
 
+## 硬件设备基础
+
+- [硬件设备基础](./docs/硬件设备基础/readme.md)
+- [软盘驱动器](./docs/硬件设备基础/01%20软盘驱动器.md)
+- [硬盘驱动器](./docs/硬件设备基础/02%20硬盘驱动器.md)
+- [VGA 显示器](./docs/硬件设备基础/03%20VGA%20显示器.md)
+
 ## 源码解析
 
-### [硬件设备基础](./docs/00%20硬件设备基础.md)
-
-### [启动引导程序](./docs/02%20启动引导程序.md)
+- [配置开发环境](./docs/01%20配置开发环境.md)
+- [启动引导程序](./docs/02%20启动引导程序.md)
 
 ## 参考资料
 
-- <https://mirrors.edge.kernel.org/pub/linux/kernel/Historic/old-versions/linux-0.11.tar.gz>
-
-- <http://oldlinux.org/Linux.old/kernel/0.1x/linux-0.11-060618-gcc4.tar.gz>
-
-- bootimage  
-    <http://oldlinux.org/Linux.old/bochs/>
-- <https://github.com/yuan-xy/Linux-0.11>
-
-- 赵炯 - 《Linux内核完全注释》  
-    <https://github.com/wuzhouhui/misc/blob/master/linux-0.11%E5%86%85%E6%A0%B8%E5%AE%8C%E5%85%A8%E6%B3%A8%E9%87%8Av3.pdf>
-
-- How to mount a QEMU virtual disk image  
-    <https://www.cloudsavvyit.com/7517/how-to-mount-a-qemu-virtual-disk-image/>
-
-- Make partition using sfdisk  
-    <https://www.computerhope.com/unix/sfdisk.htm>
-
-- Install  
-    <https://www.hpcf.upr.edu/~humberto/documents/install-log.html>
+- [参考资料](./docs/参考资料.md)
