@@ -10,7 +10,11 @@ $(IMAGE): ../linux-0.11/Image
 
 .PHONY: bochs
 bochs: $(IMAGE)
-	bochs -q -unlock
+	bochs -q -unlock -f bochsrc
+
+.PHONY: bochsg
+bochsg: $(IMAGE)
+	bochs-gdb -q -unlock -f bochsrc.gdb
 
 .PHONY: qemu
 qemu: $(IMAGE)
