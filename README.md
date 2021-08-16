@@ -3,6 +3,30 @@ Linux 源码分析
 
 [本项目地址](https://github.com/StevenBaby/alinux)
 
+## 配置开发环境
+
+对于 bochs 的配置不在赘述，可以查阅 **x86 汇编语言** 中相关的内容。
+
+### 克隆代码
+
+执行命令
+
+    git clone https://github.com/StevenBaby/alinux.git
+
+然后可以在 devel 目录执行
+
+    make bochs
+
+或者
+
+    make qemu
+
+来执行模拟程序。
+
+---
+
+具体实现的细节，待续...
+
 ## 参考资料
 
 - <https://mirrors.edge.kernel.org/pub/linux/kernel/Historic/old-versions/linux-0.11.tar.gz>
