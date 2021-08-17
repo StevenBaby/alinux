@@ -11,3 +11,6 @@ linux-0.11/System.map
 linux-0.11/Image
 
 devel/bx_enh_dbg.ini
+
+tests/boot.bin
+tests/bx_enh_dbg.ini
