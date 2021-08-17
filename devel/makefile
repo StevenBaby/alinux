@@ -2,6 +2,7 @@
 HARDDISK = ./hda.img
 IMAGE = ./floppya.img
 
+.PHONY: ../linux-0.11/Image
 ../linux-0.11/Image:
 	make -C ../linux-0.11
 

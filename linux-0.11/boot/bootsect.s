@@ -85,8 +85,6 @@ _start:
 	rep
 	movw ! 移动一个字
 
-	xchg bx, bx
-
 	! 段间跳转 相当于 nasm 语法 jmp INITSEG:go
 	! 跳转之前，这行指令的地址是 0x7c15
 	jmpi	go,INITSEG
