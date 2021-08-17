@@ -14,3 +14,10 @@ devel/bx_enh_dbg.ini
 
 tests/boot.bin
 tests/bx_enh_dbg.ini
+
+devel/bochs-gdb/bochs-2.6.11.tar.gz
+devel/bochs-gdb/src
+devel/bochs-gdb/pkg
+devel/bochs-gdb/*.zst
+
+*.lock
