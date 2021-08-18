@@ -29,7 +29,7 @@ Index: bochs/gdbstub.cc
          }
 +        else if (last_stop_reason == GDBSTUB_STOP_NO_REASON)
 +        {
-+          write_signal(&buf[1], SIGINT);
++          write_signal(&buf[1], 31);
 +        }
          else
          {

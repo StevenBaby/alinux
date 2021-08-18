@@ -17,6 +17,10 @@ bochs: $(IMAGE)
 bochsg: $(IMAGE)
 	bochs-gdb -q -unlock -f bochsrc.gdb
 
+.PHONY: kbochsg
+kbochsg:
+	ps -ef | grep bochs-gdb | grep -v grep | awk '{print $$2}' | xargs -r kill -9
+
 .PHONY: qemu
 qemu: $(IMAGE)
 	qemu-system-i386 \
