@@ -47,7 +47,7 @@ tools/build: tools/build.c
 	gcc -m32 -o tools/build tools/build.c
 
 boot/head.o: boot/head.s
-	gcc -m32 -I./include -traditional -c boot/head.s
+	gcc $(DEBUG) -m32 -I./include -c boot/head.s
 	mv head.o boot/
 
 tools/system:	boot/head.o init/main.o \
