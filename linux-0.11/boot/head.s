@@ -17,8 +17,6 @@ pg_dir: # 页目录将会存放在这里
 startup_32:
 	# system 模块 的入口地址在这里 setup.s 跳转而来
 
-	xchg %bx, %bx
-
 	# 下面设置各个数据段寄存器为数据段选择子
 	movl $0x10,%eax
 	mov %ax,%ds
