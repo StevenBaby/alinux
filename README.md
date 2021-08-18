@@ -5,11 +5,7 @@ Linux 源码分析
 
 ## 配置开发环境
 
-对于 bochs 的配置不在赘述，可以查阅 **x86 汇编语言** 中相关的内容。
-
-### 克隆代码
-
-执行命令
+克隆代码，执行命令
 
     git clone https://github.com/StevenBaby/alinux.git
 
@@ -17,13 +13,23 @@ Linux 源码分析
 
     make bochs
 
+![](./docs/images/bochs.jpg)
+
 或者
 
     make qemu
 
-来执行模拟程序。
+![](./docs/images/qemu.jpg)
 
----
+来执行模拟程序；
+
+如需要调试，则可执行：
+
+    make bochsg
+
+执行 `bochs-gdb` 然后再 vscode 中单步调试
+
+![](./docs/images/bochs-vscode.jpg)
 
 具体实现的细节，请看 [配置开发环境](./docs/01%20配置开发环境.md)
 
