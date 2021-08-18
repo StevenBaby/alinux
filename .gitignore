@@ -20,4 +20,9 @@ devel/bochs-gdb/src
 devel/bochs-gdb/pkg
 devel/bochs-gdb/*.zst
 
+devel/bochs/bochs-2.6.11.tar.gz
+devel/bochs/src
+devel/bochs/pkg
+devel/bochs/*.zst
+
 *.lock

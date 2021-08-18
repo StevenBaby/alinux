@@ -27,7 +27,7 @@ Linux 源码分析
 
     make bochsg
 
-执行 `bochs-gdb` 然后再 vscode 中单步调试
+用以启动 `bochs-gdb`，然后在 vscode 中单步调试
 
 ![](./docs/images/bochs-vscode.jpg)
 
