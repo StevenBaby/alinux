@@ -41,7 +41,7 @@ always_inline 属性是后加的，该属性有以下功能：
 static inline fork(void) __attribute__((always_inline));
 static inline pause(void) __attribute__((always_inline));
 
-// 这是 unistd.h 中的内嵌宏代码。以嵌入汇编的形式调用 Linux 的系统调用中断 0x80
+// 这是 unistd.h 中的内嵌宏代码。以内联汇编的形式调用 Linux 的系统调用中断 0x80
 // 该中断是所有系统调用的入口，该条语句实际上是 int fork() 创建进程系统调用
 // syscall0 名称中最后的 0 表示无参数，1 表示 1 个参数，等等
 static inline _syscall0(int, fork)
