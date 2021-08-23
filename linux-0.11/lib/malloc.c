@@ -1,65 +1,75 @@
-/*
- * malloc.c --- a general purpose kernel memory allocator for Linux.
- * 
- * Written by Theodore Ts'o (tytso@mit.edu), 11/29/91
- *
- * This routine is written to be as fast as possible, so that it
- * can be called from the interrupt level.
- *
- * Limitations: maximum size of memory we can allocate using this routine
- *	is 4k, the size of a page in Linux.
- *
- * The general game plan is that each page (called a bucket) will only hold
- * objects of a given size.  When all of the object on a page are released,
- * the page can be returned to the general free pool.  When malloc() is
- * called, it looks for the smallest bucket size which will fulfill its
- * request, and allocate a piece of memory from that bucket pool.
- *
- * Each bucket has as its control block a bucket descriptor which keeps 
- * track of how many objects are in use on that page, and the free list
- * for that page.  Like the buckets themselves, bucket descriptors are
- * stored on pages requested from get_free_page().  However, unlike buckets,
- * pages devoted to bucket descriptor pages are never released back to the
- * system.  Fortunately, a system should probably only need 1 or 2 bucket
- * descriptor pages, since a page can hold 256 bucket descriptors (which
- * corresponds to 1 megabyte worth of bucket pages.)  If the kernel is using 
- * that much allocated memory, it's probably doing something wrong.  :-)
- *
- * Note: malloc() and free() both call get_free_page() and free_page()
- *	in sections of code where interrupts are turned off, to allow
- *	malloc() and free() to be safely called from an interrupt routine.
- *	(We will probably need this functionality when networking code,
- *	particularily things like NFS, is added to Linux.)  However, this
- *	presumes that get_free_page() and free_page() are interrupt-level
- *	safe, which they may not be once paging is added.  If this is the
- *	case, we will need to modify malloc() to keep a few unused pages
- *	"pre-allocated" so that it can safely draw upon those pages if
- * 	it is called from an interrupt routine.
- *
- * 	Another concern is that get_free_page() should not sleep; if it 
- *	does, the code is carefully ordered so as to avoid any race 
- *	conditions.  The catch is that if malloc() is called re-entrantly, 
- *	there is a chance that unecessary pages will be grabbed from the 
- *	system.  Except for the pages for the bucket descriptor page, the 
- *	extra pages will eventually get released back to the system, though,
- *	so it isn't all that bad.
- */
 
+//  malloc.c - Linux 的通用内核内存分配函数
+
+// 由Theodore Ts'o 编码 (tytso@mit.edu), 91/11/29
+
+// 该函数被编写成尽可能地快，从而可以从中断层调用此函数
+
+// 限制：使用该函数一次所能分配的最大内存是 4k，也即 Linux 中内存页面的大小
+
+// 编写该函数所遵循的一般规则是每页(被称为一个存储桶)仅分配所要容纳对象的大小
+// 当一页上的所有对象都释放后，该页就可以返回通用空闲内存池
+// 当 malloc() 被调用时，它会寻找满足要求的最小的存储桶，并从该存储桶中分配一块内存
+
+// 每个存储桶都有一个作为其控制用的存储桶描述符
+// 其中记录了页面上有多少对象正被使用以及该页上空闲内存的列表
+// 就象存储桶自身一样，存储桶描述符也是存储在使用 get_free_page() 申请到的页面上的
+// 但是与存储桶不同的是，桶描述符所占用的页面将不再会释放给系统
+// 幸运的是一个系统大约只需要 1 到 2 页的桶描述符页面
+// 因为一个页面可以存放 256 个桶描述符(对应 1MB 内存的存储桶页面)
+// 如果系统为桶描述符分配了许多内存，那么肯定系统什么地方出了问题 😊
+
+// 注意！malloc() 和 free() 两者关闭了中断的代码部分
+// 都调用了 get_free_page() 和 free_page () 函数
+// 以使 malloc() 和 free() 可以安全地被从中断程序中调用
+// (当网络代码，尤其是 NFS 等被加入到 Linux 中时就可能需要这种功能)
+// 但前提是假设 get_free_page() 和 free_page() 是可以安全地在中断级程序中使用的
+// 这在一旦加入了分页处理之后就可能不是安全的，如果真是这种情况，
+// 那么我们就需要修改 malloc() 来“预先分配”几页不用的内存，
+// 如果 malloc() 和 free() 被从中断程序中调用时就可以安全地使用这些页面
+
+// 另外需要考虑到的是 get_free_page() 不应该睡眠
+// 如果会睡眠的话，则为了防止任何竞争条件，代码需要仔细地安排顺序
+// 关键在于如果 malloc() 是可以重入地被调用的话
+// 那么就会存在不必要的页面被从系统中取走的机会
+// 除了用于桶描述符的页面，这些额外的页面最终会释放给系统，所以并不是象想象的那样不好
+
+// 内核头文件 含有一些内核常用函数的原形定义
 #include <linux/kernel.h>
+
+// 内存管理头文件 含有页面大小定义和一些页面释放函数原型
 #include <linux/mm.h>
+
+// 系统头文件 定义了设置或修改描述符/中断门等的内联汇编宏
 #include <asm/system.h>
 
-struct bucket_desc {	/* 16 bytes */
-	void			*page;
-	struct bucket_desc	*next;
-	void			*freeptr;
-	unsigned short		refcnt;
-	unsigned short		bucket_size;
+// 存储桶描述符结构
+struct bucket_desc // 十六字节
+{
+	// 该桶描述符对应的内存页面指针
+	void *page;
+
+	// 下一个描述符指针
+	struct bucket_desc *next;
+
+	// 指向本桶中空闲内存位置的指针
+	void *freeptr;
+
+	// 引用计数
+	unsigned short refcnt;
+
+	// 本描述符对应存储桶的大小
+	unsigned short bucket_size;
 };
 
-struct _bucket_dir {	/* 8 bytes */
-	int			size;
-	struct bucket_desc	*chain;
+// 存储桶描述符目录结构
+struct _bucket_dir
+{
+	// 该存储桶的大小(字节数)
+	int size;
+
+	// 该存储桶目录项的桶描述符链表指针
+	struct bucket_desc *chain;
 };
 
 /*
@@ -74,159 +84,238 @@ struct _bucket_dir {	/* 8 bytes */
  *
  * Note that this list *must* be kept in order.
  */
+
+// 下面是我们存放第一个给定大小存储桶描述符指针的地方
+
+// 如果 Linux 内核分配了许多指定大小的对象
+// 那么我们就希望将该指定的大小加到该列表(链表)中，
+// 因为这样可以使内存的分配更有效
+// 但是，因为一页完整内存页面必须用于列表中指定大小的所有对象，
+// 所以需要做总数方面的测试操作
+
+// 存储桶目录列表(数组)
 struct _bucket_dir bucket_dir[] = {
-	{ 16,	(struct bucket_desc *) 0},
-	{ 32,	(struct bucket_desc *) 0},
-	{ 64,	(struct bucket_desc *) 0},
-	{ 128,	(struct bucket_desc *) 0},
-	{ 256,	(struct bucket_desc *) 0},
-	{ 512,	(struct bucket_desc *) 0},
-	{ 1024,	(struct bucket_desc *) 0},
-	{ 2048, (struct bucket_desc *) 0},
-	{ 4096, (struct bucket_desc *) 0},
-	{ 0,    (struct bucket_desc *) 0}};   /* End of list marker */
 
-/*
- * This contains a linked list of free bucket descriptor blocks
- */
-struct bucket_desc *free_bucket_desc = (struct bucket_desc *) 0;
+	// 16 字节长度的内存块
+	{16, (struct bucket_desc *)0},
+	{32, (struct bucket_desc *)0},
+	{64, (struct bucket_desc *)0},
+	{128, (struct bucket_desc *)0},
+	{256, (struct bucket_desc *)0},
+	{512, (struct bucket_desc *)0},
+	{1024, (struct bucket_desc *)0},
+	{2048, (struct bucket_desc *)0},
+	{4096, (struct bucket_desc *)0},
 
-/*
- * This routine initializes a bucket description page.
- */
+	// 结束标记
+	{0, (struct bucket_desc *)0}};
+
+// 下面是含有空闲桶描述符内存块的链表
+struct bucket_desc *free_bucket_desc = (struct bucket_desc *)0;
+
+// 下面的子程序用于初始化一页桶描述符页面
+
+// 初始化桶描述符
+// 建立空闲桶描述符链表，并让 free_bucket_desc 指向第一个空闲桶描述符
 static inline void init_bucket_desc()
 {
 	struct bucket_desc *bdesc, *first;
-	int	i;
-	
-	first = bdesc = (struct bucket_desc *) get_free_page();
+	int i;
+
+	// 申请一页内存，用于存放桶描述符
+	// 如果失败，则显示初始化桶描述符时内存不够出错信息，死机
+	first = bdesc = (struct bucket_desc *)get_free_page();
 	if (!bdesc)
 		panic("Out of memory in init_bucket_desc()");
-	for (i = PAGE_SIZE/sizeof(struct bucket_desc); i > 1; i--) {
-		bdesc->next = bdesc+1;
+
+	// 首先计算一页内存中可存放的桶描述符数量，然后对其建立单向连接指针
+	for (i = PAGE_SIZE / sizeof(struct bucket_desc); i > 1; i--)
+	{
+		bdesc->next = bdesc + 1;
 		bdesc++;
 	}
-	/*
-	 * This is done last, to avoid race conditions in case 
-	 * get_free_page() sleeps and this routine gets called again....
-	 */
+
+	// 这是在最后处理的，目的是为了避免在 get_free_page() 睡眠时
+	// 该子程序又被调用而引起的竞争条件
+	// 将空闲桶描述符指针 free_bucket_desc 加入链表中。
 	bdesc->next = free_bucket_desc;
 	free_bucket_desc = first;
 }
 
+// 分配动态内存函数
+// 参数：len - 请求的内存块长度。
+// 返回：指向被分配内存的指针，如果失败则返回 NULL
 void *malloc(unsigned int len)
 {
-	struct _bucket_dir	*bdir;
-	struct bucket_desc	*bdesc;
-	void			*retval;
+	struct _bucket_dir *bdir;
+	struct bucket_desc *bdesc;
+	void *retval;
 
-	/*
-	 * First we search the bucket_dir to find the right bucket change
-	 * for this request.
-	 */
+	// 首先我们搜索存储桶目录 bucket_dir 来寻找适合请求的桶大小
+	// 搜索存储桶目录，寻找适合申请内存块大小的桶描述符链表
+	// 如果目录项的桶字节数大于请求的字节数，就找到了对应的桶目录项
 	for (bdir = bucket_dir; bdir->size; bdir++)
 		if (bdir->size >= len)
 			break;
-	if (!bdir->size) {
+
+	// 如果搜索完整个目录都没有找到合适大小的目录项
+	// 则表明所请求的内存块大小太大，超出了该程序的分配限制(最长为1 个页面)
+	// 于是显示出错信息，死机
+	if (!bdir->size)
+	{
 		printk("malloc called with impossibly large argument (%d)\n",
-			len);
+			   len);
 		panic("malloc: bad arg");
 	}
-	/*
-	 * Now we search for a bucket descriptor which has free space
-	 */
-	cli();	/* Avoid race conditions */
-	for (bdesc = bdir->chain; bdesc; bdesc = bdesc->next) 
+
+	// 现在我们来搜索具有空闲空间的桶描述符
+	// 为了避免出现竞争条件，首先关中断
+	cli();
+
+	// 搜索对应桶目录项中描述符链表，查找具有空闲空间的桶描述符
+	// 如果桶描述符的空闲内存指针 freeptr 不为空，则表示找到了相应的桶描述符
+	for (bdesc = bdir->chain; bdesc; bdesc = bdesc->next)
 		if (bdesc->freeptr)
 			break;
-	/*
-	 * If we didn't find a bucket with free space, then we'll 
-	 * allocate a new one.
-	 */
-	if (!bdesc) {
-		char		*cp;
-		int		i;
 
-		if (!free_bucket_desc)	
+	// 如果没有找到具有空闲空间的桶描述符，那么我们就要新建立一个该目录项的描述符
+	if (!bdesc)
+	{
+		char *cp;
+		int i;
+
+		// 若free_bucket_desc 还为空时，表示第一次调用该程序，则对描述符链表进行初始化
+		// free_bucket_desc 指向第一个空闲桶描述符
+		if (!free_bucket_desc)
 			init_bucket_desc();
+
+		// 取 free_bucket_desc 指向的空闲桶描述符
+		// 并让 free_bucket_desc 指向下一个空闲桶描述符
 		bdesc = free_bucket_desc;
 		free_bucket_desc = bdesc->next;
+
+		// 初始化该新的桶描述符，令其引用数量等于0；
+		// 桶的大小等于对应桶目录的大小；申请一内存页面，
+		// 让描述符的页面指针 page 指向该页面；
+		// 空闲内存指针也指向该页开头，因为此时全为空闲
 		bdesc->refcnt = 0;
 		bdesc->bucket_size = bdir->size;
-		bdesc->page = bdesc->freeptr = (void *) (cp = (char *) get_free_page());
+		bdesc->page = bdesc->freeptr = (void *)(cp = (char *)get_free_page());
+
+		// 如果申请内存页面操作失败，则显示出错信息，死机
 		if (!cp)
 			panic("Out of memory in kernel malloc()");
-		/* Set up the chain of free objects */
-		for (i=PAGE_SIZE/bdir->size; i > 1; i--) {
-			*((char **) cp) = cp + bdir->size;
+
+		// 在该页空闲内存中建立空闲对象链表
+		// 以该桶目录项指定的桶大小为对象长度，对该页内存进行划分
+		// 并使每个对象的开始 4 字节设置成指向下一对象的指针
+		for (i = PAGE_SIZE / bdir->size; i > 1; i--)
+		{
+			*((char **)cp) = cp + bdir->size;
 			cp += bdir->size;
 		}
-		*((char **) cp) = 0;
-		bdesc->next = bdir->chain; /* OK, link it in! */
+		// 最后一个对象开始处的指针设置为 0(NULL)
+		// 然后让该桶描述符的下一描述符指针字段
+		// 指向对应桶目录项指针 chain 所指的描述符
+		// 而桶目录的 chain 指向该桶描述符，也即将该描述符插入到描述符链链头处
+		*((char **)cp) = 0;
+
+		// OK，将其链入！
+		bdesc->next = bdir->chain;
 		bdir->chain = bdesc;
 	}
-	retval = (void *) bdesc->freeptr;
-	bdesc->freeptr = *((void **) retval);
+
+	// 返回指针即等于该描述符对应页面的当前空闲指针
+	// 然后调整该空闲空间指针指向下一个空闲对象
+	// 并使描述符中对应页面中对象引用计数增1
+	retval = (void *)bdesc->freeptr;
+	bdesc->freeptr = *((void **)retval);
 	bdesc->refcnt++;
-	sti();	/* OK, we're safe again */
-	return(retval);
+
+	// 最后开放中断，并返回指向空闲内存对象的指针
+	sti();
+	return (retval);
 }
 
-/*
- * Here is the free routine.  If you know the size of the object that you
- * are freeing, then free_s() will use that information to speed up the
- * search for the bucket descriptor.
- * 
- * We will #define a macro so that "free(x)" is becomes "free_s(x, 0)"
- */
+// 下面是释放子程序。如果你知道释放对象的大小
+// 则 free_s() 将使用该信息加速搜寻对应桶描述符的速度
+
+// 我们将定义一个宏，使得 free(x) 成为 free_s(x, 0)
+
+// 释放存储桶对象
+// 参数：obj - 对应对象指针；size - 大小。
 void free_s(void *obj, int size)
 {
-	void		*page;
-	struct _bucket_dir	*bdir;
-	struct bucket_desc	*bdesc, *prev;
+	void *page;
+	struct _bucket_dir *bdir;
+	struct bucket_desc *bdesc, *prev;
 	bdesc = prev = 0;
-	/* Calculate what page this object lives in */
-	page = (void *)  ((unsigned long) obj & 0xfffff000);
-	/* Now search the buckets looking for that page */
-	for (bdir = bucket_dir; bdir->size; bdir++) {
+
+	// 计算该对象所在的页面
+	page = (void *)((unsigned long)obj & 0xfffff000);
+
+	// 现在搜索存储桶目录项所链接的桶描述符，寻找该页面
+	for (bdir = bucket_dir; bdir->size; bdir++)
+	{
 		prev = 0;
-		/* If size is zero then this conditional is always false */
+		// 如果参数 size 是0，则下面条件肯定是 false
 		if (bdir->size < size)
 			continue;
-		for (bdesc = bdir->chain; bdesc; bdesc = bdesc->next) {
-			if (bdesc->page == page) 
+
+		// 搜索对应目录项中链接的所有描述符，查找对应页面
+		// 如果某描述符页面指针等于 page 则表示找到了相应的描述符，跳转到 found
+		// 如果描述符不含有对应 page，则让描述符指针 prev 指向该描述符
+		for (bdesc = bdir->chain; bdesc; bdesc = bdesc->next)
+		{
+			if (bdesc->page == page)
 				goto found;
 			prev = bdesc;
 		}
 	}
+	// 若搜索了对应目录项的所有描述符都没有找到指定的页面，则显示出错信息，死机
 	panic("Bad address passed to kernel free_s()");
 found:
-	cli(); /* To avoid race conditions */
+	// 找到对应的桶描述符后，首先关中断
+	// 然后将该对象内存块链入空闲块对象链表中，
+	// 并使该描述符的对象引用计数减1。
+	cli(); // 为了避免竞争条件
 	*((void **)obj) = bdesc->freeptr;
 	bdesc->freeptr = obj;
 	bdesc->refcnt--;
-	if (bdesc->refcnt == 0) {
-		/*
-		 * We need to make sure that prev is still accurate.  It
-		 * may not be, if someone rudely interrupted us....
-		 */
+
+	// 如果引用计数已等于 0，则我们就可以释放对应的内存页面和该桶描述符
+	if (bdesc->refcnt == 0)
+	{
+		// 我们需要确信 prev 仍然是正确的
+		// 若某程序粗鲁地中断了我们就有可能不是了
+
+		// 如果 prev 已经不是搜索到的描述符的前一个描述符
+		// 则重新搜索当前描述符的前一个描述符
 		if ((prev && (prev->next != bdesc)) ||
-		    (!prev && (bdir->chain != bdesc)))
+			(!prev && (bdir->chain != bdesc)))
 			for (prev = bdir->chain; prev; prev = prev->next)
 				if (prev->next == bdesc)
 					break;
+		// 如果找到该前一个描述符，则从描述符链中删除当前描述符
 		if (prev)
 			prev->next = bdesc->next;
-		else {
+		else
+		{
+			// 如果prev==NULL，则说明当前一个描述符是该目录项首个描述符，
+			// 也即目录项中 chain 应该直接指向当前描述符 bdesc
+			// 否则表示链表有问题，则显示出错信息，死机
+			// 因此，为了将当前描述符从链表中删除，应该让 chain 指向下一个描述符
 			if (bdir->chain != bdesc)
 				panic("malloc bucket chains corrupted");
 			bdir->chain = bdesc->next;
 		}
-		free_page((unsigned long) bdesc->page);
+
+		// 释放当前描述符所操作的内存页面，并将该描述符插入空闲描述符链表开始处
+		free_page((unsigned long)bdesc->page);
 		bdesc->next = free_bucket_desc;
 		free_bucket_desc = bdesc;
 	}
+	// 开中断，返回
 	sti();
 	return;
 }
-
