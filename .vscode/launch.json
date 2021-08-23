@@ -4,27 +4,53 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [{
-        "name": "(gdb) kernel",
-        "type": "cppdbg",
-        "request": "launch",
-        "program": "${workspaceFolder}/linux-0.11/tools/system",
-        "args": [],
-        "stopAtEntry": false,
-        "cwd": "${workspaceFolder}/linux-0.11",
-        "environment": [],
-        "externalConsole": false,
-        "MIMode": "gdb",
-        "miDebuggerPath": "/usr/bin/gdb",
-        "miDebuggerServerAddress": "localhost:1234",
-        "setupCommands": [{
-                "description": "Enable pretty-printing for gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": true
-            },
-            {
-                "description": "ignore SIGUSR2 signal",
-                "text": "handle SIGUSR2 nostop noprint nopass"
-            }
-        ],
-    }]
+            "name": "(gdb) kernel nogui",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/linux-0.11/tools/system",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/linux-0.11",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "setupCommands": [{
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "ignore SIGUSR2 signal",
+                    "text": "handle SIGUSR2 nostop noprint nopass"
+                }
+            ],
+            "preLaunchTask": "bochsgn"
+        },
+        {
+            "name": "(gdb) kernel",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/linux-0.11/tools/system",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/linux-0.11",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "setupCommands": [{
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "ignore SIGUSR2 signal",
+                    "text": "handle SIGUSR2 nostop noprint nopass"
+                }
+            ],
+        }
+    ]
 }

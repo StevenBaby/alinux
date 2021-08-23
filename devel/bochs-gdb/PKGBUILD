@@ -45,6 +45,7 @@ build() {
         --with-sdl \
         --enable-all-optimizations \
         --enable-gdb-stub \
+        --with-nogui \
         # --enable-plugins \
         # --enable-smp \
         # --enable-x86-debugger \

@@ -49,6 +49,7 @@ build() {
         --with-sdl \
         --enable-x86-debugger \
         --enable-all-optimizations \
+        --with-nogui \
         --enable-plugins
     sed -i 's/^LIBS = /LIBS = -lpthread/g' Makefile
     make -j 1

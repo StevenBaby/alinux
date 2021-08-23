@@ -17,6 +17,10 @@ bochs: $(IMAGE)
 bochsg: $(IMAGE)
 	bochs-gdb -q -unlock -f bochsrc.gdb
 
+.PHONY: bochsgn
+bochsgn: kbochsg $(IMAGE)
+	bochs-gdb -q -unlock -f bochsrcn.gdb 1>/dev/null 2>&1 &
+
 .PHONY: kbochsg
 kbochsg:
 	ps -ef | grep bochs-gdb | grep -v grep | awk '{print $$2}' | xargs -r kill -9
