@@ -6,4 +6,5 @@
 
 #include <linux/fs.h>
 
+// 文件表数组
 struct file file_table[NR_FILE];
