@@ -3,6 +3,8 @@ Linux 源码分析
 
 [本项目地址](https://github.com/StevenBaby/alinux)
 
+> 欢迎大家以 Markdown 的形式提交有关硬件内容的 PR！！！
+
 ## 配置开发环境
 
 克隆代码，执行命令
